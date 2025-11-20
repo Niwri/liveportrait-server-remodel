@@ -40,6 +40,17 @@ class InferencePipeline():
             crop_cfg=crop_cfg
         )
 
+    def process_source(self, img_bytes):
+        if not self.live_portrait_pipeline:
+            raise RuntimeError(
+                "The inference pipeline is not yet set up"
+            )
+
+        self.live_portrait_pipeline.process_source(img_bytes)
+
+    def processed_source(self):
+        return self.live_portrait_pipeline.process_source != None
+    
     def inference(self):
         if not self.live_portrait_pipeline:
             raise RuntimeError(

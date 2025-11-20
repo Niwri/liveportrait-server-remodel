@@ -15,6 +15,10 @@ def load_image_rgb(image_path: str):
     img = cv2.imread(image_path, cv2.IMREAD_COLOR)
     return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
+def load_image_rgb_bytes(image_bytes):
+    nparr = np.frombuffer(image_bytes, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
 def load_video(video_info, n_frames=-1):
     reader = imageio.get_reader(video_info, "ffmpeg")
