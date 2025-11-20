@@ -11,6 +11,7 @@ import cv2; cv2.setNumThreads(0); cv2.ocl.setUseOpenCL(False)
 import numpy as np
 import os
 import os.path as osp
+import time
 from rich.progress import track
 
 from .config.argument_config import ArgumentConfig
@@ -124,6 +125,7 @@ class LivePortraitPipeline(object):
         c_d_lip_lst = driving_template_dct['c_lip_lst'] if 'c_lip_lst' in driving_template_dct.keys() else driving_template_dct['c_d_lip_lst']
 
         ######## prepare for pasteback ########
+        startTime = time.time()
         I_p_pstbk_lst = None
         if inf_cfg.flag_pasteback and inf_cfg.flag_do_crop and inf_cfg.flag_stitching:
             I_p_pstbk_lst = []
@@ -134,7 +136,6 @@ class LivePortraitPipeline(object):
         flag_normalize_lip = inf_cfg.flag_normalize_lip  # not overwrite
         flag_source_video_eye_retargeting = inf_cfg.flag_source_video_eye_retargeting  # not overwrite
         lip_delta_before_animation, eye_delta_before_animation = None, None
-
 
 
         log(f"The output of image-driven portrait animation is an image.")
@@ -190,9 +191,11 @@ class LivePortraitPipeline(object):
             else:
                 t_new = x_s_info['t']
 
+        print("A", time.time()-startTime)
         t_new[..., 2].fill_(0)  # zero tz
         x_d_i_new = scale_new * (x_c_s @ R_new + delta_new) + t_new
 
+        startTime = time.time()
         # Algorithm 1:
         if not inf_cfg.flag_stitching and not inf_cfg.flag_eye_retargeting and not inf_cfg.flag_lip_retargeting:
             # without stitching or retargeting
@@ -240,12 +243,13 @@ class LivePortraitPipeline(object):
         I_p_i = self.live_portrait_wrapper.parse_output(out['out'])[0]
         I_p_lst.append(I_p_i)
 
-        
+        print("B", time.time()-startTime)
+        startTime = time.time()
         if inf_cfg.flag_pasteback and inf_cfg.flag_do_crop and inf_cfg.flag_stitching:
             # TODO: the paste back procedure is slow, considering optimize it using multi-threading or GPU
             I_p_pstbk = paste_back(I_p_i, crop_info['M_c2o'], source_rgb_lst[0], mask_ori_float)
             I_p_pstbk_lst.append(I_p_pstbk)
-
+        print("C", time.time()-startTime)
         mkdir(args.output_dir)
         wfp_concat = None
         ######### build the final concatenation result #########

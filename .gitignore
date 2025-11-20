@@ -36,7 +36,6 @@ src/utils/dependencies/XPose/models/UniPose/ops/MultiScaleDeformableAttention.eg
 input_data/*
 output_data/*
 test.sh
-test_edit_face_image.py
 
 ffmpeg.exe
 ffprobe.exe
