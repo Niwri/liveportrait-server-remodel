@@ -191,13 +191,14 @@ class LivePortraitPipeline(object):
             else:
                 t_new = x_s_info['t']
 
-        print("A", time.time()-startTime)
+        # print("A", time.time()-startTime)
         t_new[..., 2].fill_(0)  # zero tz
         x_d_i_new = scale_new * (x_c_s @ R_new + delta_new) + t_new
 
         startTime = time.time()
         # Algorithm 1:
         if not inf_cfg.flag_stitching and not inf_cfg.flag_eye_retargeting and not inf_cfg.flag_lip_retargeting:
+            # print("1")
             # without stitching or retargeting
             if flag_normalize_lip and lip_delta_before_animation is not None:
                 x_d_i_new += lip_delta_before_animation
@@ -206,6 +207,7 @@ class LivePortraitPipeline(object):
             else:
                 pass
         elif inf_cfg.flag_stitching and not inf_cfg.flag_eye_retargeting and not inf_cfg.flag_lip_retargeting:
+            # print("2")
             # with stitching and without retargeting
             if flag_normalize_lip and lip_delta_before_animation is not None:
                 x_d_i_new = self.live_portrait_wrapper.stitching(x_s, x_d_i_new) + lip_delta_before_animation
@@ -214,6 +216,7 @@ class LivePortraitPipeline(object):
             if flag_source_video_eye_retargeting and eye_delta_before_animation is not None:
                 x_d_i_new += eye_delta_before_animation
         else:
+            # print("3")
             eyes_delta, lip_delta = None, None
             if inf_cfg.flag_eye_retargeting and source_lmk is not None:
                 c_d_eyes_i = c_d_eyes_lst
@@ -238,18 +241,20 @@ class LivePortraitPipeline(object):
             if inf_cfg.flag_stitching:
                 x_d_i_new = self.live_portrait_wrapper.stitching(x_s, x_d_i_new)
 
+        # print("B", time.time()-startTime)
+        startTime = time.time()
         x_d_i_new = x_s + (x_d_i_new - x_s) * inf_cfg.driving_multiplier
         out = self.live_portrait_wrapper.warp_decode(f_s, x_s, x_d_i_new)
         I_p_i = self.live_portrait_wrapper.parse_output(out['out'])[0]
         I_p_lst.append(I_p_i)
 
-        print("B", time.time()-startTime)
+        # print("C", time.time()-startTime) # Taking the longest by far
         startTime = time.time()
         if inf_cfg.flag_pasteback and inf_cfg.flag_do_crop and inf_cfg.flag_stitching:
             # TODO: the paste back procedure is slow, considering optimize it using multi-threading or GPU
             I_p_pstbk = paste_back(I_p_i, crop_info['M_c2o'], source_rgb_lst[0], mask_ori_float)
             I_p_pstbk_lst.append(I_p_pstbk)
-        print("C", time.time()-startTime)
+        # print("C", time.time()-startTime)
         mkdir(args.output_dir)
         wfp_concat = None
         ######### build the final concatenation result #########

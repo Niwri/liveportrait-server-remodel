@@ -10,14 +10,7 @@ def send_edit_face_image(source_image_path, driving_pkl_path, id_value="testid")
     # Read and encode images
     with open(source_image_path, 'rb') as f:
         source_b64 = base64.b64encode(f.read()).decode('utf-8')
-    with open(driving_pkl_path, 'rb') as f:
-        orgData = pickle.load(f)
-        data = {
-            'motion': orgData['motion'][orgData['n_frames'] // 2],
-            'c_eyes_lst': orgData['c_eyes_lst'][orgData['n_frames'] // 2],
-            'c_lip_lst': orgData['c_lip_lst'][orgData['n_frames'] // 2],
-        }
-        pkl_b64 = base64.b64encode(pickle.dumps(data)).decode('utf-8')
+
 
     source_payload = {
         "id": id_value,
@@ -31,26 +24,44 @@ def send_edit_face_image(source_image_path, driving_pkl_path, id_value="testid")
         print(f"Error: {resp.status_code}", resp.text)
         return
 
-    payload = {
-        "id": id_value,
-        "driving_pkl": pkl_b64
-    }
-    url = "http://127.0.0.1:5000/edit-face-landmarks"
-    startTime = time.time()
-    resp = requests.post(url, json=payload)
-    print("Inference:", time.time() - startTime)
-    if resp.status_code != 200:
-        print(f"Error: {resp.status_code}", resp.text)
-        return
-    data = resp.json()
-    img_data_uri = data.get("image")
-    if not img_data_uri or not img_data_uri.startswith("data:image/jpeg;base64,"):
-        print("No valid image in response.")
-        return
-    img_b64 = img_data_uri.split(",", 1)[1]
-    img_bytes = base64.b64decode(img_b64)
-    img = Image.open(BytesIO(img_bytes))
-    img.show()
+
+
+    with open(driving_pkl_path, 'rb') as f:
+        orgData = pickle.load(f)
+        avgTime = 0
+        for i in range(0, orgData['n_frames']):
+            data = {
+                'motion': orgData['motion'][i],
+                'c_eyes_lst': orgData['c_eyes_lst'][i],
+                'c_lip_lst': orgData['c_lip_lst'][i],
+            }
+            pkl_b64 = base64.b64encode(pickle.dumps(data)).decode('utf-8')
+
+
+            payload = {
+                "id": id_value,
+                "driving_pkl": pkl_b64
+            }
+            url = "http://127.0.0.1:5000/edit-face-landmarks"
+            startTime = time.time()
+            resp = requests.post(url, json=payload)
+            endTime = time.time()
+            print("Inference:", endTime - startTime)
+            avgTime += (endTime - startTime)
+            if resp.status_code != 200:
+                print(f"Error: {resp.status_code}", resp.text)
+                return
+            data = resp.json()
+            img_data_uri = data.get("image")
+            if not img_data_uri or not img_data_uri.startswith("data:image/jpeg;base64,"):
+                print("No valid image in response.")
+                return
+            img_b64 = img_data_uri.split(",", 1)[1]
+            img_bytes = base64.b64decode(img_b64)
+            img = Image.open(BytesIO(img_bytes))
+            img.show()
+        avgTime /= orgData['n_frames']
+        print("Average Time: ", avgTime)
     # input()
 
 
